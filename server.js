@@ -3,12 +3,15 @@ const express = require("express")
 const bodyParser = require("body-parser")
 
 const db = require("./db")
+require("dotenv").config()
 
 
 
 
 
 const app = express();
+
+const PORT = process.env.PORT || 3000
 
 app.use(bodyParser.json())
 
@@ -29,6 +32,6 @@ app.use("/menu", menuRoutes)
 
 
 
-app.listen(3000, (req, res) => {
+app.listen(PORT, (req, res) => {
     console.log("server start...")
 })
