@@ -2,16 +2,31 @@ const express = require("express")
 const router = express.Router()
 const Person = require("../models/person.js")
 
-router.post("/", async (req, res) => {
+const { jwtAuth, generateToken } = require("../jwt.js")
+
+router.post("/signup", async (req, res) => {
     try {
         const data = req.body;
 
         const newPerson = new Person(data);
 
+
+
         const saveUser = await newPerson.save()
 
+        const payload = {
+            id: saveUser._id,
+            username: saveUser.username
+
+        }
+
+        const token = await generateToken(payload)
+
+
+
         res.status(201).json({
-            data: saveUser
+            data: saveUser,
+            token: token
         })
 
     } catch (error) {
@@ -20,6 +35,56 @@ router.post("/", async (req, res) => {
     }
 
 })
+
+router.post("/login", async (req, res) => {
+    try {
+
+        const { username, password } = req.body;
+
+        const user = await Person.findOne({ username });
+
+        const isPasswordMatch = await user.comparePassword(password);
+
+        if (!user || !isPasswordMatch) {
+            return res.status(401).send("invalid username or password");
+        }
+
+        const payload = {
+            id: user._id,
+            username: user.username
+        }
+
+        const token = await generateToken(payload)
+
+        res.status(201).json({
+            token: token
+        })
+    } catch (error) {
+        res.status(501).send("internal server error")
+    }
+})
+
+
+router.get('/profile', jwtAuth, async (req, res) => {
+    try {
+        const userData = req.user;
+        console.log("User Data: ", userData);
+
+        const userId = userData.user.id;  // Corrected path to user ID
+        // console.log("User ID: ", userId);
+        const user = await Person.findById(userId);
+        // console.log("User: ", user);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.status(200).json({ user });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
 
 
 router.get("/", async (req, res) => {
